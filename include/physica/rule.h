@@ -3,10 +3,9 @@
 #include <utility>
 #include <vector>
 
-namespace phys::internal
+namespace cnr
 {
-// Abstract relations are defined as an ordered set of distinct nodes on the
-// hypergraph
+// Abstract relations are defined as an ordered set of distinct nodes on the hypergraph
 using AbstractRelation = std::vector<size_t>;
 
 class Rule
@@ -23,4 +22,4 @@ class Rule
    std::vector<AbstractRelation> pattern_;
    std::vector<AbstractRelation> replace_;
 };
-} // namespace phys::internal
+} // namespace cnr

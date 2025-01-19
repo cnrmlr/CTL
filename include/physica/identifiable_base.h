@@ -1,25 +1,23 @@
 #pragma once
 
-#include <physica/uuid.h>
+#include "uuid.h"
 
-namespace phys
+namespace cnr
 {
-class identifiable_base
+class IdentifiableBase
 {
  public:
-   identifiable_base() : uuid_(phys::uuid::generate()) {}
-   ~identifiable_base()                        = default;
-   identifiable_base(const identifiable_base&) = default;
-   identifiable_base& operator=(const identifiable_base&) = default;
-   identifiable_base(identifiable_base&&)                 = default;
-   identifiable_base& operator=(identifiable_base&&) = default;
+   IdentifiableBase();
+   virtual ~IdentifiableBase();
+   IdentifiableBase(const IdentifiableBase& rhs) = delete;
+   IdentifiableBase& operator=(const IdentifiableBase& rhs) = delete;
 
-   bool operator==(const identifiable_base& rhs) const { return uuid_ == rhs.uuid(); }
-   bool operator!=(const identifiable_base& rhs) const { return uuid_ != rhs.uuid(); }
+   bool operator==(const IdentifiableBase& rhs) const;
+   bool operator!=(const IdentifiableBase& rhs) const;
 
-   const phys::uuid& uuid() const { return uuid_; }
+   const UUID getUUID() const;
 
  protected:
-   phys::uuid uuid_;
+   UUID uuid_;
 };
-} // namespace phys
+} // namespace cnr
