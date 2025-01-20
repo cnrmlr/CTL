@@ -1,5 +1,4 @@
-#include "physica/hyperedge.h"
-#include "physica/hypergraph.h"
+#include "physica/wolfram_physics.h"
 #include <gtest/gtest.h>
 
 namespace cnr

@@ -1,4 +1,4 @@
-#include "physica/identifiable_base.h"
+#include "physica/wolfram_physics/identifiable_base.h"
 
 namespace cnr
 {

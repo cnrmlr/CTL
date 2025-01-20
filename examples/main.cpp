@@ -1,8 +1,4 @@
-#include "physica/hyperedge.h"
-#include "physica/hypergraph.h"
-#include "physica/node.h"
-#include "physica/pattern_match.h"
-#include "physica/rule.h"
+#include "physica/wolfram_physics.h"
 
 #include <cassert>
 #include <iostream>
@@ -132,6 +128,14 @@ int main()
       auto edge = G->addEdge({nodes.at(0), nodes.at(0), nodes.at(1)});
 
       auto match = cnr::PatternMatch(pattern, G->getEdges());
+   }
+
+   {
+      cnr::Rule rule = {{{1, 1}, {2, 4, 5}, {7, 5}},
+                        {{3, 8}, {2, 7}, {5, 4, 1}, {4, 6}, {5, 1, 7}}};
+
+      cnr::AbstractRelationList find    = rule.first;
+      cnr::AbstractRelationList replace = rule.second;
    }
 
    return 1;

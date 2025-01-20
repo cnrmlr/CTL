@@ -6,6 +6,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED True)
 set(TEST_SOURCES
     main.cpp
     test_hypergraph.cpp
+    test_rule.cpp
 )
 
 add_subdirectory(googletest)

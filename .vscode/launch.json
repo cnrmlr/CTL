@@ -8,7 +8,7 @@
          "name": "(gdb) Launch Tests",
          "type": "cppdbg",
          "request": "launch",
-         "program": "${workspaceFolder}/build/test/test-hypergraph",
+         "program": "${workspaceFolder}/build/test/physica-tests",
          "args": [],
          "stopAtEntry": false,
          "cwd": "${fileDirname}",

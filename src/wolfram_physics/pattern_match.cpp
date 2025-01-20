@@ -1,7 +1,7 @@
-#include "physica/pattern_match.h"
-#include "physica/common_utility.h"
-#include "physica/hyperedge.h"
-#include "physica/node.h"
+#include "physica/wolfram_physics/pattern_match.h"
+#include "physica/wolfram_physics/common_utility.h"
+#include "physica/wolfram_physics/hyperedge.h"
+#include "physica/wolfram_physics/node.h"
 
 #include <functional>
 #include <map>
