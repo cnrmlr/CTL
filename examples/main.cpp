@@ -45,6 +45,12 @@
  * in both theoretical discussions and practical implementations.
  */
 
+#include <algorithm>
+#include <iostream>
+#include <set>
+#include <unordered_set>
+#include <vector>
+
 int main()
 {
    // Each hypergraph instance should be managed by std::unique_ptr as these graphs

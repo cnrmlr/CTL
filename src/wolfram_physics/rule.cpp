@@ -21,39 +21,38 @@ Rule::Rule(const std::initializer_list<AbstractRelationList>& input)
 
 void Rule::Canonicalize()
 {
-   std::map<size_t, size_t> canonicalValueMap;
-   size_t canonicalValue = 1;
+   auto runCanonicalization = [&]() {
+      std::map<size_t, size_t> canonicalValueMap;
+      size_t canonicalValue = 1;
 
-   auto Sort = [](AbstractRelationList& list) {
-      std::sort(list.begin(), list.end(), [](const AbstractRelation& a, const AbstractRelation& b) {
-         if (a.size() != b.size())
+      auto sortRelations = [](AbstractRelationList& list) {
+         std::sort(list.begin(), list.end(),
+                   [](const AbstractRelation& a, const AbstractRelation& b) {
+                      return a.size() != b.size() ? a.size() > b.size() : a < b;
+                   });
+      };
+
+      auto mapValues = [&](AbstractRelationList& list) {
+         for (auto& relation : list)
          {
-            return a.size() > b.size();
-         }
-
-         return a < b;
-      });
-   };
-
-   auto Map = [&](AbstractRelationList& list) {
-      for (auto& relation : list)
-      {
-         for (auto& value : relation)
-         {
-            if (canonicalValueMap.find(value) == canonicalValueMap.end())
+            for (auto& value : relation)
             {
-               canonicalValueMap[value] = canonicalValue++;
+               if (canonicalValueMap.find(value) == canonicalValueMap.end())
+               {
+                  canonicalValueMap[value] = canonicalValue++;
+               }
+               value = canonicalValueMap[value];
             }
-
-            value = canonicalValueMap[value];
          }
-      }
+      };
+
+      sortRelations(this->first);
+      mapValues(this->first);
+      sortRelations(this->second);
+      mapValues(this->second);
    };
 
-   Sort(this->first);
-   Map(this->first);
-   Sort(this->second);
-   Map(this->second);
-   Sort(this->second);
+   runCanonicalization();
+   runCanonicalization();
 }
 } // namespace cnr
