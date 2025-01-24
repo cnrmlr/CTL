@@ -22,7 +22,7 @@ Rule::Rule(const std::initializer_list<AbstractRelationList>& input)
 void Rule::Canonicalize()
 {
    auto runCanonicalization = [&]() {
-      std::map<size_t, size_t> canonicalValueMap;
+      std::unordered_map<size_t, size_t> canonicalValueMap;
       size_t canonicalValue = 1;
 
       auto sortRelations = [](AbstractRelationList& list) {
