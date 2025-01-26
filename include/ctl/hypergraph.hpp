@@ -57,6 +57,9 @@ template <typename T>
 class hyperedge : public internal::identity, public std::enable_shared_from_this<hyperedge<T>>
 {
    template <typename U>
+   friend class node;
+
+   template <typename U>
    friend class hypergraph;
 
  public:
@@ -93,6 +96,12 @@ class hyperedge : public internal::identity, public std::enable_shared_from_this
 template <typename T>
 class hypergraph : public internal::identity
 {
+   template <typename U>
+   friend class node;
+
+   template <typename U>
+   friend class hyperedge;
+
  public:
    hypergraph();
    ~hypergraph();
@@ -369,7 +378,7 @@ void hyperedge<T>::remove_node(size_t at_index)
 {
    if (at_index < incident_nodes_.size())
    {
-      std::vector<std::shared_ptr<T>>::iterator iter = incident_nodes_.begin() + at_index;
+      typename std::vector<std::shared_ptr<T>>::iterator iter = incident_nodes_.begin() + at_index;
       std::shared_ptr<T> removed_node = *iter;
       incident_nodes_.erase(iter);
 
@@ -388,9 +397,9 @@ void hyperedge<T>::remove_nodes(size_t from_index, size_t to_index)
 {
    if (to_index < from_index && from_index < incident_nodes_.size())
    {
-      std::vector<std::shared_ptr<T>>::iterator from_iter = incident_nodes_.begin() + from_index;
-      std::vector<std::shared_ptr<T>>::iterator to_iter = incident_nodes_.begin() + to_index;
-      std::vector<std::shared_ptr<T>> removed_nodes(from_iter, to_iter);
+      typename std::vector<std::shared_ptr<T>>::iterator from_iter = incident_nodes_.begin() + from_index;
+      typename std::vector<std::shared_ptr<T>>::iterator to_iter = incident_nodes_.begin() + to_index;
+      typename std::vector<std::shared_ptr<T>> removed_nodes(from_iter, to_iter);
       incident_nodes_.erase(from_iter, to_iter);
 
       for (std::shared_ptr<T>& removed_node : removed_nodes)
@@ -444,24 +453,15 @@ cxptr<T> hypergraph<T>::add_node(T&& node)
 template <typename T>
 void hypergraph<T>::remove_node(const cxptr<T>& node)
 {
-   for (auto& edge : edges_)
+   if (node.is_valid())
    {
-      // remove all instances of the node from all edges it is incident to
-      auto shared_nodes = internal::make_shared_ptr_vector(edge->get_incident_nodes());
-      auto node_iter = internal::find_with_weak_ptr(shared_nodes, node);
-
-      while (node_iter != shared_nodes.end())
+      for (auto& edge : edges_)
       {
-         edge->remove_node(node_iter);
-         node_iter = internal::find_with_weak_ptr(shared_nodes, node);
+         std::vector<std::shared_ptr<T>>& edge_nodes = edge->incident_nodes_;
+         edge_nodes.erase(std::remove(edge_nodes.begin(), edge_nodes.end(), node.lock()));
       }
-   }
 
-   auto node_iter = internal::find_with_weak_ptr(nodes_, node);
-
-   if (node_iter != nodes_.end())
-   {
-      nodes_.erase(node_iter);
+      nodes_.erase(std::remove(nodes_.begin(), nodes_.end(), node.lock()));
    }
 }
 
