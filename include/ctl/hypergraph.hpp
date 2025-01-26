@@ -36,10 +36,11 @@ class node : public internal::identity
     node(const node&) = delete;
     node& operator=(const node&) = delete;
 
-   std::vector<cxptr<hyperedge<T>>> get_incident_edges();
+   std::vector<cxptr<hyperedge<T>>> get_incident_edges() const;
+   std::vector<cxptr<T>> get_adjacent_nodes() const;
 
-   bool is_adjacent_to(const cxptr<node<T>>& vertex);
    bool is_incident_to(const cxptr<hyperedge<T>>& edge);
+   bool is_adjacent_to(const cxptr<node<T>>& vertex);
 
    bool operator==(const node<T>& rhs) const;
    bool operator!=(const node<T>& rhs) const;
@@ -65,21 +66,17 @@ class hyperedge : public internal::identity, public std::enable_shared_from_this
    hyperedge(const hyperedge<T>& rhs) = delete;
    hyperedge operator=(const hyperedge<T>& rhs) = delete;
 
-   std::vector<std::shared_ptr<T>>::iterator add_node(const cxptr<T>& node);
-   std::vector<std::shared_ptr<T>>::iterator add_nodes(const std::vector<cxptr<T>>& nodes);
-
-   // since the same node can be added multiple times to an edge, removing a specific node
-   // requires an iterator pointing to the specific node to be removed. without the iterator, 
-   // the first instance of the node would be removed.
+   std::vector<cxptr<T>>::iterator add_node(const cxptr<T>& node, typename std::vector<cxptr<T>>::iterator loc);
    void remove_node(typename std::vector<std::shared_ptr<T>>::iterator node_iter);
 
-   //
+   std::vector<cxptr<T>>::iterator add_nodes(const std::vector<cxptr<T>>& nodes, typename std::vector<cxptr<T>>::iterator loc);
    void remove_nodes(typename std::vector<std::shared_ptr<T>>::iterator node_iter, size_t count);
-   
-   std::vector<cxptr<T>> get_nodes() const;
 
-   bool is_adjacent_to(const cxptr<hyperedge<T>>& edge);
+   std::vector<cxptr<T>> get_incident_nodes() const;
+   std::vector<cxptr<hyperedge<T>>> get_adjacent_edges() const;
+
    bool is_incident_to(const cxptr<T>& node);
+   bool is_adjacent_to(const cxptr<hyperedge<T>>& edge);
 
    bool operator==(const hyperedge<T>& rhs) const;
    bool operator!=(const hyperedge<T>& rhs) const;
@@ -88,7 +85,7 @@ class hyperedge : public internal::identity, public std::enable_shared_from_this
    const std::vector<std::shared_ptr<T>>::iterator find_node(cxptr<T> node);
 
  private:
-   std::vector<std::shared_ptr<T>> nodes_;
+   std::vector<std::shared_ptr<T>> incident_nodes_;
 };
 
 template <typename T>
@@ -102,9 +99,7 @@ class hypergraph : public internal::identity
 
    template <typename... Args>
    cxptr<T> add_node(Args&&... args);
-
    cxptr<T> add_node(T&& node);
-
    void remove_node(const cxptr<T>& node);
 
    std::vector<cxptr<T>> add_nodes(const size_t count);
@@ -120,8 +115,6 @@ class hypergraph : public internal::identity
    std::vector<cxptr<T>> get_nodes() const;
    std::vector<cxptr<hyperedge<T>>> get_edges() const;
 
-   std::vector<std::vector<unsigned short>> get_adjacency_matrix() const;
-
  private:
    std::vector<std::shared_ptr<T>> nodes_;
    std::vector<std::shared_ptr<hyperedge<T>>> edges_;
@@ -134,9 +127,30 @@ node<T>::node() : internal::identity()
 }
 
 template <typename T>
-std::vector<cxptr<hyperedge<T>>> node<T>::get_incident_edges()
+std::vector<cxptr<hyperedge<T>>> node<T>::get_incident_edges() const
 {
    return internal::make_weak_ptr_vector(incident_edges_);
+}
+
+template <typename T>
+inline std::vector<cxptr<T>> node<T>::get_adjacent_nodes() const
+{
+   std::vector<cxptr<T>> adjacent_nodes;
+
+   for (auto& edge : incident_edges_)
+   {
+      auto nodes = edge->get_nodes();
+
+      for (auto& node : nodes)
+      {
+         if (node->get_uuid() != this->get_uuid())
+         {
+            adjacent_nodes.emplace_back(node);
+         }
+      }
+   }
+
+   return adjacent_nodes;
 }
 
 template <typename T>
@@ -191,7 +205,7 @@ bool node<T>::operator!=(const node<T>& rhs) const
 // ----- hyperedge -----
 
 template <typename T>
-hyperedge<T>::hyperedge() : internal::identity(), nodes_(0)
+hyperedge<T>::hyperedge() : internal::identity(), incident_nodes_(0)
 {
 }
 
@@ -199,11 +213,11 @@ template <typename T>
 hyperedge<T>::hyperedge(const std::vector<std::shared_ptr<T>>& nodes)
    : internal::identity()
 {
-   nodes_.reserve(nodes.size());
+   incident_nodes_.reserve(nodes.size());
 
    for (auto& node : nodes)
    {
-      nodes_.push_back(node);
+      incident_nodes_.push_back(node);
    }
 }
 
@@ -213,15 +227,34 @@ hyperedge<T>::~hyperedge()
 }
 
 template <typename T>
-std::vector<cxptr<T>> hyperedge<T>::get_nodes() const
+std::vector<cxptr<T>> hyperedge<T>::get_incident_nodes() const
 {
-   return internal::make_weak_ptr_vector(nodes_);
+   return internal::make_weak_ptr_vector(incident_nodes_);
+}
+
+template <typename T>
+inline std::vector<cxptr<hyperedge<T>>> hyperedge<T>::get_adjacent_edges() const
+{
+   std::vector<cxptr<hyperedge<T>>> adjacent_edges;
+
+   for (auto& node : incident_nodes_)
+   {
+      for (auto& edge : node->get_incident_edges())
+      {
+         if (edge->get_uuid() != this->get_uuid())
+         {
+            adjacent_edges.emplace_back(edge);
+         }
+      }
+   }
+
+   return adjacent_edges;
 }
 
 template <typename T>
 bool hyperedge<T>::is_adjacent_to(const cxptr<hyperedge<T>>& edge)
 {
-   for (auto& node : nodes_)
+   for (auto& node : incident_nodes_)
    {
       if (edge.lock() && edge.lock()->is_incident_to(node))
       {
@@ -235,53 +268,73 @@ bool hyperedge<T>::is_adjacent_to(const cxptr<hyperedge<T>>& edge)
 template <typename T>
 bool hyperedge<T>::is_incident_to(const cxptr<T>& vertex)
 {
-   return find_node(vertex) != nodes_.end();
+   return find_node(vertex) != incident_nodes_.end();
 }
 
 template <typename T>
 const std::vector<std::shared_ptr<T>>::iterator
 hyperedge<T>::find_node(cxptr<T> node)
 {
-   return internal::find_with_weak_ptr(nodes_, node);
+   return internal::find_with_weak_ptr(incident_nodes_, node);
 }
 
 template <typename T>
-inline std::vector<std::shared_ptr<T>>::iterator hyperedge<T>::add_node(const cxptr<T>& node)
+inline std::vector<cxptr<T>>::iterator hyperedge<T>::add_node(const cxptr<T>& node, typename std::vector<cxptr<T>>::iterator loc)
 {
-   auto nodes_iter = nodes_.end();
+   auto nodes_iter = incident_nodes_.end();
+   size_t inserted_distance = 0;
    
    if (node.is_valid())
    {
-      nodes_iter = nodes_.emplace_back(node.lock());
+      auto weak_nodes = internal::make_weak_ptr_vector(incident_nodes_);
+      nodes_iter = incident_nodes_.insert(incident_nodes_.begin() + std::distance(weak_nodes.begin(), loc), node.lock());
+      inserted_distance = std::distance(incident_nodes_.begin(), nodes_iter);
+
+      if (!node.lock()->is_incident_to(this->shared_from_this()))
+      {
+         node.lock()->add_incident_edge(this->shared_from_this());
+      }
    }
 
-   return nodes_iter;
+   return internal::make_weak_ptr_vector(incident_nodes_).begin() + inserted_distance;
 }
 
 template <typename T>
-inline std::vector<std::shared_ptr<T>>::iterator
-hyperedge<T>::add_nodes(const std::vector<cxptr<T>>& nodes)
+inline std::vector<cxptr<T>>::iterator
+hyperedge<T>::add_nodes(const std::vector<cxptr<T>>& nodes, typename std::vector<cxptr<T>>::iterator loc)
 {
-   auto nodes_iter = nodes_.end();
+   auto nodes_iter = incident_nodes_.end();
+   size_t inserted_distance = 0;
    auto shared_nodes = internal::make_shared_ptr_vector(nodes);
-
-   if (!shared_nodes.empty())
+   
+   if (shared_nodes.size() > 0)
    {
-      nodes_iter = nodes_.insert(nodes_.end(), shared_nodes.begin(), shared_nodes.end());
+      auto weak_nodes = internal::make_weak_ptr_vector(incident_nodes_);
+      nodes_iter = incident_nodes_.insert(incident_nodes_.begin() + std::distance(weak_nodes.begin(), loc), shared_nodes);
+      inserted_distance = std::distance(incident_nodes_.begin(), nodes_iter);
+
+      for (node<T>& node : incident_nodes_)
+      {
+         if (!node.lock()->is_incident_to(this->shared_from_this()))
+         {
+            node.lock()->add_incident_edge(this->shared_from_this());
+         }
+      }
+
    }
 
-   return nodes_iter;
+   return internal::make_weak_ptr_vector(incident_nodes_).begin() + inserted_distance;
 }
 
 template <typename T>
 inline void hyperedge<T>::remove_node(typename std::vector<std::shared_ptr<T>>::iterator node_iter)
 {
-   if (node_iter != nodes_.end())
+   if (node_iter != incident_nodes_.end())
    {
       auto node = *node_iter;
-      nodes_.erase(node_iter);
+      incident_nodes_.erase(node_iter);
 
-      if (find_node(node) == nodes_.end())
+      if (find_node(node) == incident_nodes_.end())
       {
          // it is possible to have the same node multiple times in the edge
          // so we only remove the incident edge reference from the node once
@@ -296,19 +349,19 @@ inline void hyperedge<T>::remove_nodes(typename std::vector<std::shared_ptr<T>>:
                                        size_t count)
 {
    // Ensure we don't go beyond the end of the vector
-   if (node_iter + count > nodes_.end())
+   if (node_iter + count > incident_nodes_.end())
    {
-      count = std::distance(node_iter, nodes_.end());
+      count = std::distance(node_iter, incident_nodes_.end());
    }
 
    // Remove the sequence of nodes at once
    std::vector<std::shared_ptr<T>> removed_nodes(node_iter, node_iter + count);
-   nodes_.erase(node_iter, node_iter + count);
+   incident_nodes_.erase(node_iter, node_iter + count);
 
    // Check if all instances of each node were removed, then remove incident edge
    for (const auto& node : removed_nodes)
    {
-      if (find_node(node) == nodes_.end())
+      if (find_node(node) == incident_nodes_.end())
       {
          node->remove_incident_edge(this->shared_from_this());
       }
@@ -359,7 +412,7 @@ void hypergraph<T>::remove_node(const cxptr<T>& node)
    for (auto& edge : edges_)
    {
       // remove all instances of the node from all edges it is incident to
-      auto shared_nodes = internal::make_shared_ptr_vector(edge->get_nodes());
+      auto shared_nodes = internal::make_shared_ptr_vector(edge->get_incident_nodes());
       auto node_iter = internal::find_with_weak_ptr(shared_nodes, node);
 
       while (node_iter != shared_nodes.end())
@@ -430,7 +483,7 @@ void hypergraph<T>::remove_edge(const cxptr<hyperedge<T>>& edge)
 
    if (edge_iter != edges_.end())
    {
-      for (auto& node : internal::make_shared_ptr_vector(edge_iter->get()->get_nodes()))
+      for (auto& node : internal::make_shared_ptr_vector(edge_iter->get()->get_incident_nodes()))
       {
          node->remove_incident_edge(edge);
       }
@@ -474,26 +527,4 @@ std::vector<cxptr<hyperedge<T>>> hypergraph<T>::get_edges() const
 {
    return internal::make_weak_ptr_vector(edges_);
 }
-
-template <typename T>
-std::vector<std::vector<unsigned short>> hypergraph<T>::get_adjacency_matrix() const
-{
-   std::vector<std::vector<unsigned short>> adjacency_matrix;
-   adjacency_matrix.reserve(nodes_.size());
-
-   for (auto& node_i : nodes_)
-   {
-      std::vector<unsigned short> adjacency_list;
-      adjacency_list.reserve(nodes_.size());
-
-      for (auto& node_j : nodes_)
-      {
-         adjacency_list.push_back(static_cast<unsigned short>(node_i->is_adjacent_to(node_j)));
-      }
-
-      adjacency_matrix.push_back(adjacency_list);
-   }
-
-   return adjacency_matrix;
-}
-} // namespace cnr
+} // namespace ctl
