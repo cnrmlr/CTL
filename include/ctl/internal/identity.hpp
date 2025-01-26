@@ -145,8 +145,8 @@ class identity
  public:
    identity() : uuid_(uuid::generate()) {}
    virtual ~identity() {}
-   identity(const identity& rhs) = delete;
-   identity& operator=(const identity& rhs) = delete;
+   identity(const identity& rhs) = default;
+   identity& operator=(const identity& rhs) = default;
    identity(identity&& rhs)                 = default;
    identity& operator=(identity&& rhs)      = default;
 

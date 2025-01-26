@@ -31,10 +31,11 @@ class node : public internal::identity
 
  public:
     node();
+    node(const node&) = default;
+    node& operator=(const node&) = default;
     node(node&&) noexcept = default;
     node& operator=(node&&) noexcept = default;
-    node(const node&) = delete;
-    node& operator=(const node&) = delete;
+    virtual ~node() = default;
 
    std::vector<cxptr<hyperedge<T>>> get_incident_edges() const;
    std::vector<cxptr<T>> get_adjacent_nodes() const;
@@ -65,9 +66,11 @@ class hyperedge : public internal::identity, public std::enable_shared_from_this
  public:
    hyperedge();
    hyperedge(const std::vector<std::shared_ptr<T>>& nodes);
-   ~hyperedge();
-   hyperedge(const hyperedge<T>& rhs) = delete;
-   hyperedge operator=(const hyperedge<T>& rhs) = delete;
+   hyperedge(const hyperedge<T>&) = default;
+   hyperedge& operator=(const hyperedge<T>&) = default;
+   hyperedge(hyperedge<T>&&) = default;
+   hyperedge& operator=(hyperedge<T>&&) = default;
+   virtual ~hyperedge() = default;
 
    void add_node(cxptr<T>& node);
    void add_node(cxptr<T>& node, size_t insertion_point);
@@ -104,9 +107,11 @@ class hypergraph : public internal::identity
 
  public:
    hypergraph();
-   ~hypergraph();
-   hypergraph(const hypergraph&) = delete;
-   hypergraph operator=(const hypergraph) = delete;
+   hypergraph(const hypergraph&) = default;
+   hypergraph& operator=(const hypergraph&) = default;
+   hypergraph(hypergraph&&) = default;
+   hypergraph& operator=(hypergraph&&) = default;
+   virtual ~hypergraph();
 
    template <typename... Args>
    cxptr<T> add_node(Args&&... args);
@@ -230,11 +235,6 @@ hyperedge<T>::hyperedge(const std::vector<std::shared_ptr<T>>& nodes)
    {
       incident_nodes_.push_back(node);
    }
-}
-
-template <typename T>
-hyperedge<T>::~hyperedge()
-{
 }
 
 template <typename T>
@@ -428,11 +428,6 @@ bool hyperedge<T>::operator!=(const hyperedge<T>& rhs) const
 
 template <typename T>
 hypergraph<T>::hypergraph() : internal::identity()
-{
-}
-
-template <typename T>
-hypergraph<T>::~hypergraph()
 {
 }
 
