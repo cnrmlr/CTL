@@ -15,27 +15,27 @@ class Foo : public ctl::node<Foo>
 class HypergraphTestFixture : public ::testing::Test
 {
  public:
-   HypergraphTestFixture() : hypergraph_(nullptr) {}
+   HypergraphTestFixture() {}
 
    ~HypergraphTestFixture() {}
 
  protected:
-   std::unique_ptr<hypergraph<Foo>> hypergraph_;
+   void SetUp() override {}
 
-   void SetUp() override { hypergraph_ = std::make_unique<hypergraph<Foo>>(); }
-
-   void TearDown() override { hypergraph_.reset(); }
+   void TearDown() override {}
 };
 
 TEST_F(HypergraphTestFixture, AddNodeToHypergraph)
 {
-   auto node = hypergraph_->add_node(1, "foo");
+   hypergraph<Foo> hypergraph;
+
+   auto node = hypergraph.add_node(1, "foo");
    ASSERT_TRUE(node.is_valid());
    ASSERT_EQ(node->value_, 1);
    ASSERT_STREQ(node->name_, "foo");
    ASSERT_EQ(node->get_incident_edges().size(), 0);
 
-   auto nodes = hypergraph_->get_nodes();
+   auto nodes = hypergraph.get_nodes();
    ASSERT_EQ(nodes.size(), 1);
    ASSERT_EQ(nodes[0]->value_, 1);
    ASSERT_STREQ(nodes[0]->name_, "foo");
@@ -46,25 +46,31 @@ TEST_F(HypergraphTestFixture, AddNodeToHypergraph)
 
 TEST_F(HypergraphTestFixture, RemoveNodeFromHypergraph)
 {
-   auto node = hypergraph_->add_node(1, "foo");
-   hypergraph_->remove_node(node);
+   hypergraph<Foo> hypergraph;
 
-   ASSERT_EQ(hypergraph_->get_nodes().size(), 0);
+   auto node = hypergraph.add_node(1, "foo");
+   hypergraph.remove_node(node);
+
+   ASSERT_EQ(hypergraph.get_nodes().size(), 0);
    ASSERT_FALSE(node.is_valid());
 }
 
 TEST_F(HypergraphTestFixture, AddNodesToHypergraph)
 {
-   auto nodes = hypergraph_->add_nodes(10);
+   hypergraph<Foo> hypergraph;
+
+   auto nodes = hypergraph.add_nodes(10);
    ASSERT_EQ(nodes.size(), 10);
-   ASSERT_EQ(hypergraph_->get_nodes().size(), 10);
+   ASSERT_EQ(hypergraph.get_nodes().size(), 10);
 }
 
 TEST_F(HypergraphTestFixture, RemoveNodesFromHypergraph)
 {
-   auto nodes = hypergraph_->add_nodes(10);
-   hypergraph_->remove_nodes(nodes);
-   ASSERT_EQ(hypergraph_->get_nodes().size(), 0);
+   hypergraph<Foo> hypergraph;
+
+   auto nodes = hypergraph.add_nodes(10);
+   hypergraph.remove_nodes(nodes);
+   ASSERT_EQ(hypergraph.get_nodes().size(), 0);
 
    for (auto& node : nodes)
    {
@@ -74,9 +80,11 @@ TEST_F(HypergraphTestFixture, RemoveNodesFromHypergraph)
 
 TEST_F(HypergraphTestFixture, AddEdgeToHypergraph)
 {
-   auto node1 = hypergraph_->add_node(1, "foo");
-   auto node2 = hypergraph_->add_node(2, "bar");
-   auto edge  = hypergraph_->add_edge({node1, node2});
+   hypergraph<Foo> hypergraph;
+
+   auto node1 = hypergraph.add_node(1, "foo");
+   auto node2 = hypergraph.add_node(2, "bar");
+   auto edge  = hypergraph.add_edge({node1, node2});
 
    ASSERT_TRUE(edge.is_valid());
    ASSERT_EQ(edge->get_incident_nodes().size(), 2);
@@ -88,7 +96,7 @@ TEST_F(HypergraphTestFixture, AddEdgeToHypergraph)
    ASSERT_EQ(node1->get_incident_edges().size(), 1);
    ASSERT_EQ(node2->get_incident_edges().size(), 1);
 
-   auto edges = hypergraph_->get_edges();
+   auto edges = hypergraph.get_edges();
    ASSERT_EQ(edges.size(), 1);
    ASSERT_EQ(edges[0]->get_incident_nodes().size(), 2);
    ASSERT_EQ(edges[0]->get_incident_nodes()[0]->value_, 1);
@@ -99,12 +107,14 @@ TEST_F(HypergraphTestFixture, AddEdgeToHypergraph)
 
 TEST_F(HypergraphTestFixture, RemoveEdgeFromHypergraph)
 {
-   auto node1 = hypergraph_->add_node(1, "foo");
-   auto node2 = hypergraph_->add_node(2, "bar");
-   auto edge  = hypergraph_->add_edge({node1, node2});
-   hypergraph_->remove_edge(edge);
+   hypergraph<Foo> hypergraph;
 
-   ASSERT_EQ(hypergraph_->get_edges().size(), 0);
+   auto node1 = hypergraph.add_node(1, "foo");
+   auto node2 = hypergraph.add_node(2, "bar");
+   auto edge  = hypergraph.add_edge({node1, node2});
+   hypergraph.remove_edge(edge);
+
+   ASSERT_EQ(hypergraph.get_edges().size(), 0);
    ASSERT_FALSE(edge.is_valid());
    ASSERT_EQ(node1->get_incident_edges().size(), 0);
    ASSERT_EQ(node2->get_incident_edges().size(), 0);
@@ -112,21 +122,23 @@ TEST_F(HypergraphTestFixture, RemoveEdgeFromHypergraph)
 
 TEST_F(HypergraphTestFixture, AddEdgesToHypergraph)
 {
-   auto node1 = hypergraph_->add_node(1, "foo");
-   auto node2 = hypergraph_->add_node(2, "bar");
-   auto node3 = hypergraph_->add_node(3, "baz");
-   auto node4 = hypergraph_->add_node(4, "qux");
-   auto node5 = hypergraph_->add_node(5, "quux");
-   auto node6 = hypergraph_->add_node(6, "corge");
-   auto node7 = hypergraph_->add_node(7, "grault");
-   auto node8 = hypergraph_->add_node(8, "garply");
-   auto node9 = hypergraph_->add_node(9, "waldo");
+   hypergraph<Foo> hypergraph;
+
+   auto node1 = hypergraph.add_node(1, "foo");
+   auto node2 = hypergraph.add_node(2, "bar");
+   auto node3 = hypergraph.add_node(3, "baz");
+   auto node4 = hypergraph.add_node(4, "qux");
+   auto node5 = hypergraph.add_node(5, "quux");
+   auto node6 = hypergraph.add_node(6, "corge");
+   auto node7 = hypergraph.add_node(7, "grault");
+   auto node8 = hypergraph.add_node(8, "garply");
+   auto node9 = hypergraph.add_node(9, "waldo");
 
    auto edges =
-      hypergraph_->add_edges({{node1, node2, node3}, {node4, node5, node6}, {node7, node8, node9}});
+      hypergraph.add_edges({{node1, node2, node3}, {node4, node5, node6}, {node7, node8, node9}});
 
    ASSERT_EQ(edges.size(), 3);
-   ASSERT_EQ(hypergraph_->get_edges().size(), 3);
+   ASSERT_EQ(hypergraph.get_edges().size(), 3);
    ASSERT_EQ(edges[0]->get_incident_nodes().size(), 3);
    ASSERT_EQ(edges[1]->get_incident_nodes().size(), 3);
    ASSERT_EQ(edges[2]->get_incident_nodes().size(), 3);
@@ -161,15 +173,17 @@ TEST_F(HypergraphTestFixture, AddEdgesToHypergraph)
 
 TEST_F(HypergraphTestFixture, RemoveEdgesFromHypergraph)
 {
-   auto node1 = hypergraph_->add_node(1, "foo");
-   auto node2 = hypergraph_->add_node(2, "bar");
-   auto node3 = hypergraph_->add_node(3, "baz");
-   auto node4 = hypergraph_->add_node(4, "qux");
-   auto edge1 = hypergraph_->add_edge({node1, node2});
-   auto edge2 = hypergraph_->add_edge({node3, node4});
-   hypergraph_->remove_edges({edge1, edge2});
+   hypergraph<Foo> hypergraph;
 
-   ASSERT_EQ(hypergraph_->get_edges().size(), 0);
+   auto node1 = hypergraph.add_node(1, "foo");
+   auto node2 = hypergraph.add_node(2, "bar");
+   auto node3 = hypergraph.add_node(3, "baz");
+   auto node4 = hypergraph.add_node(4, "qux");
+   auto edge1 = hypergraph.add_edge({node1, node2});
+   auto edge2 = hypergraph.add_edge({node3, node4});
+   hypergraph.remove_edges({edge1, edge2});
+
+   ASSERT_EQ(hypergraph.get_edges().size(), 0);
    ASSERT_FALSE(edge1.is_valid());
    ASSERT_FALSE(edge2.is_valid());
    ASSERT_EQ(node1->get_incident_edges().size(), 0);
@@ -180,10 +194,12 @@ TEST_F(HypergraphTestFixture, RemoveEdgesFromHypergraph)
 
 TEST_F(HypergraphTestFixture, AddNodeToEdge)
 {
-   auto node1 = hypergraph_->add_node(1, "foo");
-   auto node2 = hypergraph_->add_node(2, "bar");
-   auto edge  = hypergraph_->add_edge({node1, node2});
-   auto node3 = hypergraph_->add_node(3, "baz");
+   hypergraph<Foo> hypergraph;
+
+   auto node1 = hypergraph.add_node(1, "foo");
+   auto node2 = hypergraph.add_node(2, "bar");
+   auto edge  = hypergraph.add_edge({node1, node2});
+   auto node3 = hypergraph.add_node(3, "baz");
    ASSERT_FALSE(node1->is_adjacent_to(node3));
 
    edge->add_node(node3);
@@ -194,15 +210,17 @@ TEST_F(HypergraphTestFixture, AddNodeToEdge)
    ASSERT_TRUE(node3->is_adjacent_to(node1));
    ASSERT_TRUE(node3->is_adjacent_to(node2));
    ASSERT_TRUE(node1->is_incident_to(edge));
-   ASSERT_EQ(hypergraph_->get_nodes().size(), 3);
+   ASSERT_EQ(hypergraph.get_nodes().size(), 3);
 }
 
 TEST_F(HypergraphTestFixture, AddNodeToEdgeAtSpecificPoint)
 {
-   auto node1 = hypergraph_->add_node(1, "foo");
-   auto node2 = hypergraph_->add_node(2, "bar");
-   auto edge  = hypergraph_->add_edge({node1, node2});
-   auto node3 = hypergraph_->add_node(3, "baz");
+   hypergraph<Foo> hypergraph;
+
+   auto node1 = hypergraph.add_node(1, "foo");
+   auto node2 = hypergraph.add_node(2, "bar");
+   auto edge  = hypergraph.add_edge({node1, node2});
+   auto node3 = hypergraph.add_node(3, "baz");
    ASSERT_FALSE(node1->is_adjacent_to(node3));
 
    edge->add_node(node3, 1);
@@ -213,16 +231,18 @@ TEST_F(HypergraphTestFixture, AddNodeToEdgeAtSpecificPoint)
    ASSERT_TRUE(node3->is_adjacent_to(node1));
    ASSERT_TRUE(node3->is_adjacent_to(node2));
    ASSERT_TRUE(node1->is_incident_to(edge));
-   ASSERT_EQ(hypergraph_->get_nodes().size(), 3);
+   ASSERT_EQ(hypergraph.get_nodes().size(), 3);
 }
 
 TEST_F(HypergraphTestFixture, AddNodesToEdge)
 {
-   auto node1 = hypergraph_->add_node(1, "foo");
-   auto node2 = hypergraph_->add_node(2, "bar");
-   auto edge  = hypergraph_->add_edge({node1, node2});
-   auto node3 = hypergraph_->add_node(3, "baz");
-   auto node4 = hypergraph_->add_node(4, "qux");
+   hypergraph<Foo> hypergraph;
+
+   auto node1 = hypergraph.add_node(1, "foo");
+   auto node2 = hypergraph.add_node(2, "bar");
+   auto edge  = hypergraph.add_edge({node1, node2});
+   auto node3 = hypergraph.add_node(3, "baz");
+   auto node4 = hypergraph.add_node(4, "qux");
    ASSERT_FALSE(node1->is_adjacent_to(node3));
    ASSERT_FALSE(node2->is_adjacent_to(node4));
 
@@ -240,16 +260,18 @@ TEST_F(HypergraphTestFixture, AddNodesToEdge)
    ASSERT_TRUE(node4->is_adjacent_to(node1));
    ASSERT_TRUE(node4->is_adjacent_to(node2));
    ASSERT_TRUE(node4->is_incident_to(edge));
-   ASSERT_EQ(hypergraph_->get_nodes().size(), 4);
+   ASSERT_EQ(hypergraph.get_nodes().size(), 4);
 }
 
 TEST_F(HypergraphTestFixture, AddNodesToEdgeAtSpecificPoint)
 {
-   auto node1 = hypergraph_->add_node(1, "foo");
-   auto node2 = hypergraph_->add_node(2, "bar");
-   auto edge  = hypergraph_->add_edge({node1, node2});
-   auto node3 = hypergraph_->add_node(3, "baz");
-   auto node4 = hypergraph_->add_node(4, "qux");
+   hypergraph<Foo> hypergraph;
+
+   auto node1 = hypergraph.add_node(1, "foo");
+   auto node2 = hypergraph.add_node(2, "bar");
+   auto edge  = hypergraph.add_edge({node1, node2});
+   auto node3 = hypergraph.add_node(3, "baz");
+   auto node4 = hypergraph.add_node(4, "qux");
    ASSERT_FALSE(node1->is_adjacent_to(node3));
    ASSERT_FALSE(node2->is_adjacent_to(node4));
 
@@ -267,6 +289,6 @@ TEST_F(HypergraphTestFixture, AddNodesToEdgeAtSpecificPoint)
    ASSERT_TRUE(node4->is_adjacent_to(node1));
    ASSERT_TRUE(node4->is_adjacent_to(node2));
    ASSERT_TRUE(node4->is_incident_to(edge));
-   ASSERT_EQ(hypergraph_->get_nodes().size(), 4);
+   ASSERT_EQ(hypergraph.get_nodes().size(), 4);
 }
 } // namespace ctl::test

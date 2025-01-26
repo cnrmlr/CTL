@@ -35,7 +35,7 @@ class node : public internal::identity
     node& operator=(const node&) = default;
     node(node&&) noexcept = default;
     node& operator=(node&&) noexcept = default;
-    virtual ~node() = default;
+    ~node() = default;
 
    std::vector<cxptr<hyperedge<T>>> get_incident_edges() const;
    std::vector<cxptr<T>> get_adjacent_nodes() const;
@@ -111,7 +111,7 @@ class hypergraph : public internal::identity
    hypergraph& operator=(const hypergraph&) = default;
    hypergraph(hypergraph&&) = default;
    hypergraph& operator=(hypergraph&&) = default;
-   virtual ~hypergraph();
+   virtual ~hypergraph() = default;
 
    template <typename... Args>
    cxptr<T> add_node(Args&&... args);
@@ -149,19 +149,17 @@ std::vector<cxptr<hyperedge<T>>> node<T>::get_incident_edges() const
 }
 
 template <typename T>
-std::vector<cxptr<T>> node<T>::get_adjacent_nodes() const
+std::vector<cxptr<T>> node<T>::get_adjacent_nodes() const 
 {
    std::vector<cxptr<T>> adjacent_nodes;
 
-   for (auto& edge : incident_edges_)
+   for (const std::shared_ptr<hyperedge<T>>& edge : incident_edges_)
    {
-      auto nodes = edge->get_nodes();
-
-      for (auto& node : nodes)
+      for (const std::shared_ptr<T>& other_node : edge->incident_nodes_)
       {
-         if (node->get_uuid() != this->get_uuid())
+         if (other_node.get() != this)
          {
-            adjacent_nodes.emplace_back(node);
+            adjacent_nodes.emplace_back(other_node);
          }
       }
    }
@@ -169,10 +167,11 @@ std::vector<cxptr<T>> node<T>::get_adjacent_nodes() const
    return adjacent_nodes;
 }
 
+
 template <typename T>
 bool node<T>::is_adjacent_to(const cxptr<T>& node)
 {
-   for (auto& edge : incident_edges_)
+   for (std::shared_ptr<hyperedge<T>>& edge : incident_edges_)
    {
       if (edge->is_incident_to(node))
       {
@@ -248,11 +247,11 @@ std::vector<cxptr<hyperedge<T>>> hyperedge<T>::get_adjacent_edges() const
 {
    std::vector<cxptr<hyperedge<T>>> adjacent_edges;
 
-   for (auto& node : incident_nodes_)
+   for (std::shared_ptr<T>& node : incident_nodes_)
    {
-      for (auto& edge : node->get_incident_edges())
+      for (std::shared_ptr<hyperedge<T>>& edge : node->incident_edges_)
       {
-         if (edge->get_uuid() != this->get_uuid())
+         if (edge.get() != this)
          {
             adjacent_edges.emplace_back(edge);
          }
@@ -265,11 +264,18 @@ std::vector<cxptr<hyperedge<T>>> hyperedge<T>::get_adjacent_edges() const
 template <typename T>
 bool hyperedge<T>::is_adjacent_to(const cxptr<hyperedge<T>>& edge)
 {
-   for (auto& node : incident_nodes_)
+   if (edge.is_valid())
    {
-      if (edge.lock() && edge.lock()->is_incident_to(node))
+      std::vector<std::shared_ptr<T>>& other_edge_nodes = edge.get().incident_nodes_;
+
+      for (std::shared_ptr<T>& node : incident_nodes_)
       {
-         return true;
+         typename std::shared_ptr<T>::iterator iter = std::find(other_edge_nodes.begin(), other_edge_nodes.end(), node);
+
+         if (iter != other_edge_nodes.end())
+         {
+            return true;
+         }
       }
    }
 
@@ -295,12 +301,14 @@ void hyperedge<T>::add_node(cxptr<T>& node)
    if (node.is_valid())
    {
       incident_nodes_.emplace_back(node.lock());
-      ctl::node<T>& inserted_node = node.get();
+      std::vector<std::shared_ptr<hyperedge<T>>>& edge_list = node.get().incident_edges_;
       std::shared_ptr<hyperedge<T>> this_edge = this->shared_from_this();
+      typename std::vector<std::shared_ptr<hyperedge<T>>>::iterator iter = 
+         std::find(edge_list.begin(), edge_list.end(), this_edge);
 
-      if (!inserted_node.is_incident_to(this_edge))
+      if (iter == edge_list.end())
       {
-         inserted_node.add_incident_edge(this_edge);
+         edge_list.emplace_back(this_edge);
       }
    }
 }
@@ -311,12 +319,14 @@ void hyperedge<T>::add_node(cxptr<T>& node, size_t insertion_point)
    if (node.is_valid() && insertion_point < incident_nodes_.size())
    {
       incident_nodes_.emplace(incident_nodes_.begin() + insertion_point, node.lock());
-      ctl::node<T>& inserted_node = node.get();
+      std::vector<std::shared_ptr<hyperedge<T>>>& edge_list = node.get().incident_edges_;
       std::shared_ptr<hyperedge<T>> this_edge = this->shared_from_this();
+      typename std::vector<std::shared_ptr<hyperedge<T>>>::iterator iter = 
+         std::find(edge_list.begin(), edge_list.end(), this_edge);
 
-      if (!inserted_node.is_incident_to(this_edge))
+      if (iter == edge_list.end())
       {
-         inserted_node.add_incident_edge(this_edge);
+         edge_list.emplace_back(this_edge);
       }
    }
 }
