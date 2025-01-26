@@ -184,11 +184,89 @@ TEST_F(HypergraphTestFixture, AddNodeToEdge)
    auto node2 = hypergraph_->add_node(2, "bar");
    auto edge  = hypergraph_->add_edge({node1, node2});
    auto node3 = hypergraph_->add_node(3, "baz");
+   ASSERT_FALSE(node1->is_adjacent_to(node3));
 
-   edge->add_node(node3, edge->get_incident_nodes().begin() + 1);
+   edge->add_node(node3);
    ASSERT_EQ(edge->get_incident_nodes().size(), 3);
    ASSERT_EQ(edge->get_incident_nodes()[2]->value_, 3);
    ASSERT_STREQ(edge->get_incident_nodes()[2]->name_, "baz");
    ASSERT_EQ(node3->get_incident_edges().size(), 1);
+   ASSERT_TRUE(node3->is_adjacent_to(node1));
+   ASSERT_TRUE(node3->is_adjacent_to(node2));
+   ASSERT_TRUE(node1->is_incident_to(edge));
+   ASSERT_EQ(hypergraph_->get_nodes().size(), 3);
+}
+
+TEST_F(HypergraphTestFixture, AddNodeToEdgeAtSpecificPoint)
+{
+   auto node1 = hypergraph_->add_node(1, "foo");
+   auto node2 = hypergraph_->add_node(2, "bar");
+   auto edge  = hypergraph_->add_edge({node1, node2});
+   auto node3 = hypergraph_->add_node(3, "baz");
+   ASSERT_FALSE(node1->is_adjacent_to(node3));
+
+   edge->add_node(node3, 1);
+   ASSERT_EQ(edge->get_incident_nodes().size(), 3);
+   ASSERT_EQ(edge->get_incident_nodes()[1]->value_, 3);
+   ASSERT_STREQ(edge->get_incident_nodes()[1]->name_, "baz");
+   ASSERT_EQ(node3->get_incident_edges().size(), 1);
+   ASSERT_TRUE(node3->is_adjacent_to(node1));
+   ASSERT_TRUE(node3->is_adjacent_to(node2));
+   ASSERT_TRUE(node1->is_incident_to(edge));
+   ASSERT_EQ(hypergraph_->get_nodes().size(), 3);
+}
+
+TEST_F(HypergraphTestFixture, AddNodesToEdge)
+{
+   auto node1 = hypergraph_->add_node(1, "foo");
+   auto node2 = hypergraph_->add_node(2, "bar");
+   auto edge  = hypergraph_->add_edge({node1, node2});
+   auto node3 = hypergraph_->add_node(3, "baz");
+   auto node4 = hypergraph_->add_node(4, "qux");
+   ASSERT_FALSE(node1->is_adjacent_to(node3));
+   ASSERT_FALSE(node2->is_adjacent_to(node4));
+
+   edge->add_nodes({node3, node4});
+   ASSERT_EQ(edge->get_incident_nodes().size(), 4);
+   ASSERT_EQ(edge->get_incident_nodes()[2]->value_, 3);
+   ASSERT_STREQ(edge->get_incident_nodes()[2]->name_, "baz");
+   ASSERT_EQ(edge->get_incident_nodes()[3]->value_, 4);
+   ASSERT_STREQ(edge->get_incident_nodes()[3]->name_, "qux");
+   ASSERT_EQ(node3->get_incident_edges().size(), 1);
+   ASSERT_EQ(node4->get_incident_edges().size(), 1);
+   ASSERT_TRUE(node3->is_adjacent_to(node1));
+   ASSERT_TRUE(node3->is_adjacent_to(node2));
+   ASSERT_TRUE(node3->is_incident_to(edge));
+   ASSERT_TRUE(node4->is_adjacent_to(node1));
+   ASSERT_TRUE(node4->is_adjacent_to(node2));
+   ASSERT_TRUE(node4->is_incident_to(edge));
+   ASSERT_EQ(hypergraph_->get_nodes().size(), 4);
+}
+
+TEST_F(HypergraphTestFixture, AddNodesToEdgeAtSpecificPoint)
+{
+   auto node1 = hypergraph_->add_node(1, "foo");
+   auto node2 = hypergraph_->add_node(2, "bar");
+   auto edge  = hypergraph_->add_edge({node1, node2});
+   auto node3 = hypergraph_->add_node(3, "baz");
+   auto node4 = hypergraph_->add_node(4, "qux");
+   ASSERT_FALSE(node1->is_adjacent_to(node3));
+   ASSERT_FALSE(node2->is_adjacent_to(node4));
+
+   edge->add_nodes({node3, node4}, 1);
+   ASSERT_EQ(edge->get_incident_nodes().size(), 4);
+   ASSERT_EQ(edge->get_incident_nodes()[1]->value_, 3);
+   ASSERT_STREQ(edge->get_incident_nodes()[1]->name_, "baz");
+   ASSERT_EQ(edge->get_incident_nodes()[2]->value_, 4);
+   ASSERT_STREQ(edge->get_incident_nodes()[2]->name_, "qux");
+   ASSERT_EQ(node3->get_incident_edges().size(), 1);
+   ASSERT_EQ(node4->get_incident_edges().size(), 1);
+   ASSERT_TRUE(node3->is_adjacent_to(node1));
+   ASSERT_TRUE(node3->is_adjacent_to(node2));
+   ASSERT_TRUE(node3->is_incident_to(edge));
+   ASSERT_TRUE(node4->is_adjacent_to(node1));
+   ASSERT_TRUE(node4->is_adjacent_to(node2));
+   ASSERT_TRUE(node4->is_incident_to(edge));
+   ASSERT_EQ(hypergraph_->get_nodes().size(), 4);
 }
 } // namespace ctl::test
